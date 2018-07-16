@@ -1,0 +1,139 @@
+---
+title: "Repositório Brasileiro Livre para Dados Abertos do Solo -- Relatório Julho/2018"
+author: "Alessandro Samuel-Rosa"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+library(magrittr)
+library(dplyr)
+library(lattice)
+library(latticeExtra)
+library(glue)
+library(rgdal)
+library(rgeos)
+```
+
+```{r, include=FALSE}
+# Carregar dados armazenados no repositório irmão `febr-data`
+load('../../febr-data/data/uf.rda') # uf: data.frame
+# load("../../febr-data/data/dts.rda") # dts: large list
+load("../../febr-data/data/obs.rda") # obs: large list
+load("../../febr-data/data/lyr.rda") # lyr: large list
+```
+
+Número total de conjuntos de dados.
+
+```{r}
+obs %>% length()
+```
+
+Número total de observações do solo.
+
+```{r}
+total_obs <- sapply(obs, nrow) %>% sum()
+total_obs
+```
+
+Número total de observações da camada superficial do solo.
+
+```{r}
+is.topsoil <-
+  function (x, n.layers = 3, d.max = 30) {
+    maxsum <- ifelse(nrow(x) > 100, nrow(x), 100)
+    n_layers <- x$observacao_id %>% as.factor() %>% summary(maxsum = maxsum)
+    d_max <- by(x$profund_inf, as.factor(x$observacao_id), max)
+    sum(n_layers <= n.layers & d_max <= d.max)
+  }
+top_obs <- sapply(lyr, is.topsoil) %>% sum(na.rm = TRUE)
+top_obs
+```
+
+Número total de observações que correspondem a perfis do solo.
+
+```{r}
+total_obs - top_obs
+```
+
+Data de observação.
+
+```{r, fig.asp=1}
+age <- lapply(obs, function (x) x[c("dataset_id", "observacao_id", "observacao_data")])
+age <- do.call(rbind, age)
+age <- na.exclude(age)
+p <- 
+  histogram(
+    ~ observacao_data, age, border = "ivory", col = "firebrick1", 
+    xlab = "Data de observação", ylab = "Porcentagem do total",
+    main = "febr",
+    panel = function (...) {
+      panel.grid(v = -1, h = -1)
+      panel.histogram(...)
+    })
+# png("../res/fig/observacao_data.png", width = 480 * 2, height = 480 * 2, res = 72 * 2.5)
+p
+# dev.off()
+```
+
+Observações do solo feitas antes de 1960, 1990, 2010, e 2019. 
+
+```{r}
+n_age <-
+  c("1900-01-01", "1960-01-01", "1990-01-01", "2010-01-01", "2019-01-01") %>% 
+  as.Date() %>% 
+  sapply(function (x) sum(age$observacao_data < x)) %>% 
+  diff()
+n_age
+```
+
+```{r, fig.asp=1, fig.cap="Distribuição relativa das observações do solo entre as unidades federativas brasileiras."}
+tmp_uf <- lapply(obs, function (x) summary(as.factor(x[["estado_id"]]))) %>% unlist()
+tmp_uf <- by(tmp_uf, names(tmp_uf), sum) %>% c()
+# tmp_uf <- tmp_uf[-which(names(tmp_uf) == "NA's")]
+tmp_uf <- tmp_uf / sum(tmp_uf) * 100
+tmp_uf <- tmp_uf[order(tmp_uf)]
+p1 <- 
+  barchart(
+    tmp_uf, border = "ivory", col = "firebrick1", 
+    # xlab = "Percent of total", ylab = "Federative unit",
+    xlab = "Porcentagem do total", ylab = "Unidade federativa",
+    xlim = c(0, extendrange(tmp_uf)[2]), 
+    panel = function (...) {
+      panel.grid(v = -1, h = -1)
+      panel.barchart(...)
+    })
+# png("tmp/percent-uf.png", width = 480, height = 480 * 2, res = 72 * 2.5) # abstract
+# png("tmp/percent-uf.png", width = 480 * 3.2, height = 480 * 2 * 3, res = 72 * 2.5 * 3) # poster
+p1
+# dev.off()
+```
+
+```{r, fig.asp=1}
+br <- raster::shapefile("../../febr-data/data/br.shp")
+crs <- sp::CRS("+proj=utm +zone=22 +south +ellps=GRS80 +towgs84=0,0,0,0,0,0,0 +units=m +no_defs")
+br <- sp::spTransform(br, crs)
+br$area <- rgeos::gArea(br, byid = TRUE) / (1000 * 1000 * 1000)
+br$SigUF <- br$NomUF
+SigUF <- uf$estado_id %>% as.list()
+names(SigUF) <- uf$estado_nome
+br$SigUF <- recode(br$SigUF, !!!SigUF)
+idx <- match(br$SigUF, names(tmp_uf))
+dens <- tmp_uf[idx] / br$area
+dens <- dens[order(dens)]
+p2 <- 
+  barchart(
+    dens, border = "ivory", col = "firebrick1", 
+    # xlab = "Areal density", ylab = " ", 
+    xlab = "Densidade areal (por 1000 km²)", ylab = " ", 
+    xlim = c(0, extendrange(dens)[2]),
+    panel = function (...) {
+      panel.grid(v = -1, h = -1)
+      panel.barchart(...)
+    })
+# png("tmp/density-uf.png", width = 480, height = 480 * 2, res = 72 * 2.5) # abstract
+# png("tmp/density-uf.png", width = 480 * 3.2, height = 480 * 2 * 3, res = 72 * 2.5 * 3) # poster
+p2
+# dev.off()
+```
+
