@@ -3,8 +3,8 @@
 # VII Reunião Paranaense de Ciência do Solo. Anais... In: VII REUNIÃO PARANAENSE DE CIÊNCIA DO SOLO.
 # Guarapuava, Paraná: Sociedade Brasileira de Ciência do Solo - Núcleo Estadual Paraná, 2021.
 # Homepage: https://www.even3.com.br/rpcs2021/
-# Resumo: https://docs.google.com/document/d/1GIiiS1p_MnKV4G9krUHnjuH8W5bu2UCq/edit?usp=sharing&ouid=102266921966617795057&rtpof=true&sd=true
-# Pôster: https://docs.google.com/presentation/d/1YLXPRFLS0fDEzR603JaWTXmG_wnrdef3CMRZFZzUBNo/edit?usp=sharing
+# Resumo: https://docs.google.com/document/d/1GIiiS1p_MnKV4G9krUHnjuH8W5bu2UCq/
+# Pôster: https://docs.google.com/presentation/d/1YLXPRFLS0fDEzR603JaWTXmG_wnrdef3CMRZFZzUBNo/
 
 # Carregar índice de conjuntos de dados publicados no FEBR
 febr_index <- data.table::fread("~/ownCloud/febr-repo/publico/febr-indice.txt")
