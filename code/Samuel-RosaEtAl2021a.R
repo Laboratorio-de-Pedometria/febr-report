@@ -11,7 +11,7 @@ publicados <- nrow(febr_index)
 publicados
 
 # Carregar super conjunto de dados padronizados e harmonizados
-febr_dados <- data.table::fread("~/ownCloud/febr-repo/publico/febr-superconjunto.txt")
+febr_dados <- data.table::fread("~/ownCloud/febr-repo/publico/febr-superconjunto.txt", dec = ",")
 head(febr_dados)
 
 # Quantas amostras já foram padronizadas e harmonizadas?
@@ -59,3 +59,53 @@ data_contagem; round(data_contagem / sum(data_contagem) * 100)
 coord_faltante <- febr_dados[estado_id == uf & is.na(coord_x), dataset_id, observacao_id]
 coord_faltante <- nrow(unique(febr_coord))
 coord_faltante; round(coord_faltante / eventos_parana * 100)
+
+# FIGURA MOSTRANDO DISTRIBUIÇÃO ESPACIAL E TEMPORAL DOS EVENTOS
+# Preparar dados dos eventos
+which_cols <- c("dataset_id", "observacao_id", "coord_x", "coord_y", "observacao_data")
+estado_espacial <- febr_estado[, ..which_cols]
+estado_espacial <- estado_espacial[!is.na(coord_x)]
+estado_espacial <- estado_espacial[!is.na(coord_y)]
+estado_espacial <- sf::st_as_sf(estado_espacial, coords = c("coord_x", "coord_y"), crs = 4674)
+estado_espacial[["observacao_data"]] <- as.Date(estado_espacial[["observacao_data"]])
+estado_espacial[["observacao_data"]] <- format(estado_espacial[["observacao_data"]], "%Y")
+estado_espacial[["observacao_data"]] <- as.numeric(estado_espacial[["observacao_data"]])
+# Descarregar limite do estado e filtrar eventos
+estado <- geobr::read_state()
+qual_estado <- estado[["name_state"]] == "Paraná"
+estado <- estado[qual_estado, "name_state"]
+points_in_state <- sf::st_intersects(estado, estado_espacial)
+estado_espacial <- estado_espacial[points_in_state[[1]], ]
+year_seq <- seq(1920, 2020, length.out = 6)
+# Criar figura
+dev.off()
+png("res/fig/parana-espaco-tempo.png", width = 480 * 5, height = 480 * 5, res = 72 * 5)
+plot_matrix <- c(1, 2, 2, 3, 2, 2, 4, 5, 6)
+plot_matrix <- matrix(plot_matrix, ncol = 3)
+plot_matrix <- layout(plot_matrix)
+for (i in 1:6) {
+  if (i == 2) {
+    plot(estado, reset = FALSE, axes = TRUE, graticule = TRUE, main = "", col = "white")
+    plot(estado_espacial["observacao_id"], add = TRUE, col = "black")
+  } else {
+    if (i < 2) {
+      main <- paste0(year_seq[i], "-", year_seq[i + 1])
+      idx <- {
+              year_seq[i] < estado_espacial[["observacao_data"]]
+            } & {
+              estado_espacial[["observacao_data"]] < year_seq[i + 1]
+            }
+    } else {
+      main <- paste0(year_seq[i - 1], "-", year_seq[i])
+      idx <- {
+              year_seq[i - 1] < estado_espacial[["observacao_data"]]
+            } & {
+              estado_espacial[["observacao_data"]] < year_seq[i]
+            }
+    }
+    plot(estado, reset = FALSE, axes = FALSE, graticule = TRUE, main = main,
+      col = "white", col_graticule = "white")
+    plot(estado_espacial[idx, "observacao_id"], add = TRUE, col = "black")
+  }
+}
+dev.off()
