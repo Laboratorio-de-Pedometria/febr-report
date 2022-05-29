@@ -60,8 +60,35 @@ data_contagem; round(data_contagem / sum(data_contagem) * 100)
 
 # Quantos eventos não possuem coordenadas espaciais?
 coord_faltante <- febr_dados[estado_id == uf & is.na(coord_x), dataset_id, observacao_id]
-coord_faltante <- nrow(unique(febr_coord))
+coord_faltante <- nrow(unique(coord_faltante))
 coord_faltante; round(coord_faltante / eventos_parana * 100)
+
+# Histograma de frequência da distribuição do conteúdo de carbono e densidade do solo
+length(na.exclude(febr_estado[, carbono]))
+dev.off()
+png("res/fig/parana-histograma-carbono-densidade.png",
+  width = 480 * 15, height = 480 * 5, res = 72 * 10)
+par(mfrow = c(1, 3))
+hist(febr_estado[, carbono], panel.first = grid(nx= NA, ny = NULL),
+  xlab = "Carbono (g/kg)", ylab = "Frequência absoluta", main = "Carbono (g/kg)")
+rug(febr_estado[, carbono])
+hist(log(febr_estado[, carbono]), panel.first = grid(nx= NA, ny = NULL),
+  xlab = "log[Carbono (g/kg)]", ylab = "Frequência absoluta", main = "log[Carbono (g/kg)]")
+rug(log(febr_estado[, carbono]))
+hist(febr_estado[, dsi], panel.first = grid(nx= NA, ny = NULL),
+  xlab = "Densidade (g/cm^3)", ylab = "Frequência absoluta", main = "Densidade (g/cm^3)")
+rug(febr_estado[, dsi])
+dev.off()
+
+# Gráfico de colunas com estatísticas de disponibilidade de data e coordenadas
+bardata <- c(Total = eventos_parana, `Sem data` = data_faltante, `Sem coordenadas` = coord_faltante)
+dev.off()
+png("res/fig/parana-total-sem-data-sem-coordenadas.png",
+  width = 480 * 5, height = 480 * 5, res = 72 * 5)
+barplot(bardata, ylab = "Número de eventos", xaxt = 'n', xlab = '', yaxt = 'n')
+grid(nx = NA, ny = NULL)
+barplot(bardata, add = TRUE)
+dev.off()
 
 # FIGURA MOSTRANDO DISTRIBUIÇÃO ESPACIAL E TEMPORAL DOS EVENTOS
 # Preparar dados dos eventos
@@ -79,6 +106,13 @@ qual_estado <- estado[["name_state"]] == "Paraná"
 estado <- estado[qual_estado, "name_state"]
 points_in_state <- sf::st_intersects(estado, estado_espacial)
 estado_espacial <- estado_espacial[points_in_state[[1]], ]
+
+dev.off()
+png("res/fig/parana-espacial.png", width = 480 * 5, height = 480 * 5, res = 72 * 5)
+plot(estado, reset = FALSE, axes = TRUE, graticule = TRUE, main = "", col = "white")
+plot(estado_espacial["observacao_id"], add = TRUE, col = "black")
+dev.off()
+
 year_seq <- seq(1920, 2020, length.out = 6)
 # Criar figura
 dev.off()
@@ -96,14 +130,14 @@ for (i in 1:6) {
       idx <- {
               year_seq[i] < estado_espacial[["observacao_data"]]
             } & {
-              estado_espacial[["observacao_data"]] < year_seq[i + 1]
+              estado_espacial[["observacao_data"]] <= year_seq[i + 1]
             }
     } else {
       main <- paste0(year_seq[i - 1], "-", year_seq[i])
       idx <- {
               year_seq[i - 1] < estado_espacial[["observacao_data"]]
             } & {
-              estado_espacial[["observacao_data"]] < year_seq[i]
+              estado_espacial[["observacao_data"]] <= year_seq[i]
             }
     }
     plot(estado, reset = FALSE, axes = FALSE, graticule = TRUE, main = main,
@@ -111,4 +145,28 @@ for (i in 1:6) {
     plot(estado_espacial[idx, "observacao_id"], add = TRUE, col = "black")
   }
 }
+dev.off()
+
+
+which_cols <- c("observacao_id", "coord_x", "coord_y", "carbono", "dsi")
+estado_espacial <- febr_estado[, ..which_cols]
+estado_espacial <- estado_espacial[!is.na(coord_x)]
+estado_espacial <- estado_espacial[!is.na(coord_y)]
+estado_espacial <- sf::st_as_sf(estado_espacial, coords = c("coord_x", "coord_y"), crs = 4674)
+points_in_state <- sf::st_intersects(estado, estado_espacial)
+estado_espacial <- estado_espacial[points_in_state[[1]], ]
+estado_espacial[["carbono"]] <- log(estado_espacial[["carbono"]])
+dev.off()
+png("res/fig/parana-espacial-carbono-densidade.png",
+  width = 480 * 10, height = 480 * 10, res = 72 * 10)
+par(mfrow = c(2, 2))
+plot(estado, reset = FALSE, graticule = TRUE, main = "Amostras",
+      col = "white", col_graticule = "white")
+plot(estado_espacial["observacao_id"], add = TRUE, col = "black")
+plot(estado, reset = FALSE, graticule = TRUE, main = "Carbono",
+      col = "white", col_graticule = "white")
+plot(estado_espacial["carbono"], add = TRUE)
+plot(estado, reset = FALSE, graticule = TRUE, main = "Densidade",
+      col = "white", col_graticule = "white")
+plot(estado_espacial["dsi"], add = TRUE)
 dev.off()
