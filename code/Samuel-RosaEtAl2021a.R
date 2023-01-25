@@ -6,15 +6,29 @@
 # Resumo: https://docs.google.com/document/d/1GIiiS1p_MnKV4G9krUHnjuH8W5bu2UCq/
 # Pôster: https://docs.google.com/presentation/d/1YLXPRFLS0fDEzR603JaWTXmG_wnrdef3CMRZFZzUBNo/
 
+# Instalar pacotes necessários
+if (!require(sf)) {
+  install.packages("sf", dependencies = TRUE)
+}
+if (!require(data.table)) {
+  install.packages("data.table", dependencies = TRUE)
+}
+if (!require(geobr)) {
+  install.packages("geobr", dependencies = TRUE)
+}
+
+
 # Carregar índice de conjuntos de dados publicados no FEBR
-febr_index <- data.table::fread("~/ownCloud/febr-repo/publico/febr-indice.txt")
+febr_index <- data.table::fread("https://cloud.utfpr.edu.br/index.php/s/ha1oinvrrqItWx4/download")
 
 # Quantos conjuntos de dados já foram publicados?
 publicados <- nrow(febr_index)
 publicados
 
 # Carregar super conjunto de dados padronizados e harmonizados
-febr_dados <- data.table::fread("~/ownCloud/febr-repo/publico/febr-superconjunto.txt", dec = ",")
+febr_dados <- data.table::fread("https://cloud.utfpr.edu.br/index.php/s/nEXaoXIE0nZ1AqG/download",
+  dec = ","
+)
 head(febr_dados)
 
 # Quantas amostras já foram padronizadas e harmonizadas?
@@ -53,7 +67,9 @@ data_presente <-
   ]
 data_presente <- unique(data_presente)
 data_interesse <- as.Date(as.character(c(1900, seq(1960, 2020, 10))), format = "%Y")
-data_contagem <- sapply(data_interesse, function(x) sum(data_presente[, observacao_data] < x, na.rm = TRUE))
+data_contagem <- sapply(data_interesse, function(x) {
+  sum(data_presente[, observacao_data] < x, na.rm = TRUE)
+})
 data_contagem <- diff(data_contagem)
 names(data_contagem) <- data_interesse[-1]
 data_contagem; round(data_contagem / sum(data_contagem) * 100)
@@ -66,7 +82,7 @@ coord_faltante; round(coord_faltante / eventos_parana * 100)
 # Histograma de frequência da distribuição do conteúdo de carbono e densidade do solo
 length(na.exclude(febr_estado[, carbono]))
 dev.off()
-png("res/fig/parana-histograma-carbono-densidade.png",
+png("febr-report/res/fig/parana-histograma-carbono-densidade.png",
   width = 480 * 15, height = 480 * 5, res = 72 * 10)
 par(mfrow = c(1, 3))
 hist(febr_estado[, carbono], panel.first = grid(nx= NA, ny = NULL),
@@ -83,7 +99,7 @@ dev.off()
 # Gráfico de colunas com estatísticas de disponibilidade de data e coordenadas
 bardata <- c(Total = eventos_parana, `Sem data` = data_faltante, `Sem coordenadas` = coord_faltante)
 dev.off()
-png("res/fig/parana-total-sem-data-sem-coordenadas.png",
+png("febr-report/res/fig/parana-total-sem-data-sem-coordenadas.png",
   width = 480 * 5, height = 480 * 5, res = 72 * 5)
 barplot(bardata, ylab = "Número de eventos", xaxt = 'n', xlab = '', yaxt = 'n')
 grid(nx = NA, ny = NULL)
@@ -108,7 +124,7 @@ points_in_state <- sf::st_intersects(estado, estado_espacial)
 estado_espacial <- estado_espacial[points_in_state[[1]], ]
 
 dev.off()
-png("res/fig/parana-espacial.png", width = 480 * 5, height = 480 * 5, res = 72 * 5)
+png("febr-report/res/fig/parana-espacial.png", width = 480 * 5, height = 480 * 5, res = 72 * 5)
 plot(estado, reset = FALSE, axes = TRUE, graticule = TRUE, main = "", col = "white")
 plot(estado_espacial["observacao_id"], add = TRUE, col = "black")
 dev.off()
@@ -116,7 +132,7 @@ dev.off()
 year_seq <- seq(1920, 2020, length.out = 6)
 # Criar figura
 dev.off()
-png("res/fig/parana-espaco-tempo.png", width = 480 * 5, height = 480 * 5, res = 72 * 5)
+png("febr-report/res/fig/parana-espaco-tempo.png", width = 480 * 5, height = 480 * 5, res = 72 * 5)
 plot_matrix <- c(1, 2, 2, 3, 2, 2, 4, 5, 6)
 plot_matrix <- matrix(plot_matrix, ncol = 3)
 plot_matrix <- layout(plot_matrix)
@@ -147,7 +163,6 @@ for (i in 1:6) {
 }
 dev.off()
 
-
 which_cols <- c("observacao_id", "coord_x", "coord_y", "carbono", "dsi")
 estado_espacial <- febr_estado[, ..which_cols]
 estado_espacial <- estado_espacial[!is.na(coord_x)]
@@ -157,7 +172,7 @@ points_in_state <- sf::st_intersects(estado, estado_espacial)
 estado_espacial <- estado_espacial[points_in_state[[1]], ]
 estado_espacial[["carbono"]] <- log(estado_espacial[["carbono"]])
 dev.off()
-png("res/fig/parana-espacial-carbono-densidade.png",
+png("febr-report/res/fig/parana-espacial-carbono-densidade.png",
   width = 480 * 10, height = 480 * 10, res = 72 * 10)
 par(mfrow = c(2, 2))
 plot(estado, reset = FALSE, graticule = TRUE, main = "Amostras",
