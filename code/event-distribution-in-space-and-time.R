@@ -35,13 +35,14 @@ febr_data[["observacao_data"]] <- as.Date(febr_data[["observacao_data"]])
 febr_data[["observacao_data"]] <- format(febr_data[["observacao_data"]], "%Y")
 febr_data[["observacao_data"]] <- as.numeric(febr_data[["observacao_data"]])
 
-# Descarregar limites dos biomas brasileiros e países sul americanos
-# brazil <- geobr::read_country()
-brazil <- geobr::read_biomes()
-brazil <- brazil[brazil$name_biome != "Sistema Costeiro", "code_biome"]
-brazil$code_biome <- 0
-southamerica <- rnaturalearth::ne_countries(continent = "south america", returnclass = "sf",
-  scale = "medium")
+# Descarregar limites do Brasil, biomas brasileiros e países sul americanos,
+# inclusive Guiana Francesa
+brazil <- geobr::read_country()
+biomes <- geobr::read_biomes()
+biomes <- biomes[biomes$name_biome != "Sistema Costeiro", "code_biome"]
+biomes$code_biome <- 0
+southamerica <- rnaturalearth::ne_countries(continent = c("south america", "europe"),
+  returnclass = "sf", scale = "medium")
 southamerica <- southamerica[, "iso_a2"]
 
 # Filtrar eventos contidos dentro dos biomas brasileiros
@@ -56,7 +57,7 @@ dev.off()
 png("febr-report/res/fig/event-distribution-in-space-and-time.png",
   width = 480 * 6, height = 480 * 6, res = 72 * 6)
 # x11()
-par(mar = c(1, 1, 1, 1))
+par(mar = rep(1.9, 4))
 plot_matrix <- c(1, 2, 2, 3, 2, 2, 4, 5, 6)
 plot_matrix <- matrix(plot_matrix, ncol = 3)
 plot_matrix <- layout(plot_matrix)
@@ -65,7 +66,7 @@ for (i in 1:6) {
     plot(brazil, reset = FALSE, main = "BRAZIL", col = "transparent",
       axes = TRUE, graticule = TRUE, lwd = 0.01)
     plot(southamerica, reset = FALSE, col = "gray96", add = TRUE, lwd = 0.5)
-    plot(brazil, reset = FALSE, add = TRUE, main = "", col = "#eeece1", lwd = 0.5)
+    plot(biomes, reset = FALSE, add = TRUE, main = "", col = "#eeece1", lwd = 0.5)
     plot(febr_data["observacao_id"], add = TRUE, col = "firebrick", cex = 0.5)
   } else {
     j <- ifelse(i < 2, i, i - 1)
@@ -76,7 +77,7 @@ for (i in 1:6) {
     plot(brazil, reset = FALSE, main = main, col = "transparent",
       axes = TRUE, graticule = TRUE, lwd = 0.01)
     plot(southamerica, reset = FALSE, col = "gray96", add = TRUE, lwd = 0.5)
-    plot(brazil, reset = FALSE, add = TRUE, col = "#eeece1", lwd = 0.5)
+    plot(biomes, reset = FALSE, add = TRUE, col = "#eeece1", lwd = 0.5)
     plot(febr_data[idx, "observacao_id"], add = TRUE, col = "firebrick", cex = 0.5)
   }
 }
