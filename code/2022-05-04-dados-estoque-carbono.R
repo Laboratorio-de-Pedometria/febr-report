@@ -1,4 +1,6 @@
-febr_data <- data.table::fread("~/ownCloud/febr-repo/publico/febr-superconjunto.txt", dec = ",")
+
+febr_dados <- data.table::fread(
+  input = "https://cloud.utfpr.edu.br/index.php/s/nEXaoXIE0nZ1AqG/download", dec = ",")
 head(febr_data)
 nrow(febr_data)
 length(unique(febr_data[["dataset_id"]]))
