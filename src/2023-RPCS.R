@@ -1,5 +1,6 @@
-# 
-# Alessandro Samuel-Rosa & Taciara Zborowski Horst
+# VIII Reunião Paranaense de Ciência do Solo | Dois Vizinhos | Paraná
+# Processamento de Dados no FEBR para Cálculo de Estoques de Carbono do Solo
+# Alessandro Samuel-Rosa, Taciara Z. Horst, Graziele F.D. Wendling, Aline M. Huf dos Reis
 # 2023 CC-BY
 rm(list = ls())
 
